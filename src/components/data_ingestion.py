@@ -10,6 +10,10 @@ from src.components.data_transformation import DataTransformation
 
 from src.components.data_transformation import DataTransformationConfig
 
+from src.components.model_trainer import ModelTrainerConfig
+
+from src.components.model_trainer import ModelTrainer
+
 from dataclasses import dataclass
 
 @dataclass
@@ -53,7 +57,13 @@ if __name__=="__main__":
     train_data,test_data=obj.initiate_data_ingestion()
     
     data_transformation=DataTransformation()
-    data_transformation.initiate_data_tranformation(train_data,test_data)
+    train_arr,test_arr,_=data_transformation.initiate_data_tranformation(train_data,test_data)
+    
+    
+    
+    modeltrainer=ModelTrainer()
+    print(modeltrainer.initiate_model_trainer(train_arr,test_arr))
+    
     
 # Why and When We Use This Code
 # Purpose: This code is used in machine learning projects to prepare data for training and testing models. Properly preparing data is crucial because the quality of the data directly affects the performance of the model.
