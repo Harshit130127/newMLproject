@@ -4,14 +4,14 @@ import sys  # For system operations and error handling
 from dataclasses import dataclass  # For configuration class creation
 from catboost import CatBoostRegressor  # CatBoost regression model
 from sklearn.ensemble import (
-    RandomForestClassifier,
-    GradientBoostingClassifier,
     RandomForestRegressor,
-)  # Ensemble learning models
-from sklearn.linear_model import LogisticRegression  # Logistic regression classifier
-from sklearn.metrics import accuracy_score, mean_squared_error, r2_score  # Evaluation metrics
-from sklearn.neighbors import KNeighborsClassifier  # KNN classifier
-from sklearn.tree import DecisionTreeClassifier  # Decision tree classifier
+    GradientBoostingRegressor,
+    AdaBoostRegressor,
+)  # Ensemble learning models for regression
+from sklearn.linear_model import LinearRegression  # Linear regression model
+from sklearn.metrics import r2_score  # Evaluation metric for regression
+from sklearn.neighbors import KNeighborsRegressor  # KNN regressor
+from sklearn.tree import DecisionTreeRegressor  # Decision tree regressor
 from xgboost import XGBRegressor  # XGBoost regression model
 from src.exception import CustomException  # Custom exception handling
 from src.logger import logging  # Logging module
@@ -41,36 +41,56 @@ class ModelTrainer:
         try:
             # Split data into features (X) and target (y)
             logging.info("Splitting data into features and targets")
-            # Training data
             X_train = train_array[:, :-1]  # All columns except last
             y_train = train_array[:, -1]   # Last column as target
-            # Testing data
             X_test = test_array[:, :-1]    # All columns except last
             y_test = test_array[:, -1]     # Last column as target
 
-            # Define model dictionary with various algorithms
-            # Note: Mix of classifiers and regressors (potential issue)
+            # Define model dictionary with various regression algorithms
             models = {
-                "RandomForestClassifier": RandomForestClassifier(),
-                "GradientBoostingClassifier": GradientBoostingClassifier(),
-                "LogisticRegression": LogisticRegression(),
-                "DecisionTreeClassifier": DecisionTreeClassifier(),
-                "KNeighborsClassifier": KNeighborsClassifier(),
-                "CatBoostClassifier": CatBoostRegressor(verbose=0),  # Regression model
-                "AdaBoostClassifier": RandomForestRegressor(),       # Misnamed (should be Regressor)
-                "XGBClassifier": XGBRegressor(),                     # Regression model
+                "RandomForestRegressor": RandomForestRegressor(),
+                "GradientBoostingRegressor": GradientBoostingRegressor(),
+                "LinearRegression": LinearRegression(),
+                "DecisionTreeRegressor": DecisionTreeRegressor(),
+                "KNeighborsRegressor": KNeighborsRegressor(),
+                "CatBoostRegressor": CatBoostRegressor(verbose=0),  # Regression model
+                "AdaBoostRegressor": AdaBoostRegressor(),
+                "XGBRegressor": XGBRegressor(),                     # Regression model
             }
-
+            params = {
+                    "RandomForestRegressor": {  # Key matches model name
+                        'n_estimators': [8, 16, 32, 64, 128, 256]
+                    },
+                    "GradientBoostingRegressor": {  # Key matches model name
+                        'learning_rate': [.1, .01, .05, .001],
+                        'n_estimators': [8, 16, 32, 64, 128, 256]
+                    },
+                    "DecisionTreeRegressor": {
+                        'criterion': ['squared_error', 'friedman_mse', 'absolute_error', 'poisson'],
+                    },
+                    "KNeighborsRegressor": {},
+                    "LinearRegression": {},
+                    "CatBoostRegressor": {
+                        'depth': [6, 8, 10],
+                        'learning_rate': [0.01, 0.05, 0.1],
+                        'iterations': [30, 50, 100]
+                    },
+                    "AdaBoostRegressor": {
+                        'learning_rate': [.1, .01, .05, .001],
+                        'n_estimators': [8, 16, 32, 64, 128, 256]
+                    },
+                    "XGBRegressor": {
+                        'learning_rate': [.1, .01, .05, .001],
+                        'n_estimators': [8, 16, 32, 64, 128, 256]
+                    }
+                }
+            logging.info("Evaluating candidate models")
+            
+            model_report:dict=evaluate_models(X_train=X_train,y_train=y_train,X_test=X_test,y_test=y_test,
+                                             models=models,param=params)
             # Evaluate all models using utility function
             logging.info("Evaluating candidate models")
-            model_report: dict = evaluate_models(
-                X_train=X_train,
-                y_train=y_train,
-                X_test=X_test,
-                y_test=y_test,
-                models=models
-            )
-
+            
             # Identify best performing model
             best_model_score = max(sorted(model_report.values()))
             best_model_name = list(model_report.keys())[
@@ -101,3 +121,5 @@ class ModelTrainer:
             # Handle and log any training errors
             logging.error("Model training process failed")
             raise CustomException(e, sys)
+        
+        

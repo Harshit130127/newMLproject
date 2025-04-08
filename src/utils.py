@@ -7,6 +7,8 @@ import dill  # For object serialization (alternative to pickle)
 from src.exception import CustomException  # Custom exception class
 from src.logger import logging  # Logging module
 from sklearn.metrics import r2_score  # Regression evaluation metric
+from sklearn.model_selection import GridSearchCV  # For hyperparameter tuning
+
 
 def save_object(file_path, obj):
     """
@@ -38,7 +40,7 @@ def save_object(file_path, obj):
         raise CustomException(e, sys)
     
 
-def evaluate_models(X_train, y_train, X_test, y_test, models):
+def evaluate_models(X_train, y_train, X_test, y_test, models,param):
     """
     Evaluate multiple machine learning models using R² score
     
@@ -63,7 +65,11 @@ def evaluate_models(X_train, y_train, X_test, y_test, models):
             # Get model name and object using index
             model_name = list(models.keys())[i]
             model = list(models.values())[i]
-            
+            para=param[list(models.keys())[i]]
+            gs = GridSearchCV(model,para,cv=3)
+            gs.fit(X_train,y_train)
+
+            model.set_params(**gs.best_params_)
             logging.info(f"Evaluating model: {model_name}")
             
             # Train model on training data
